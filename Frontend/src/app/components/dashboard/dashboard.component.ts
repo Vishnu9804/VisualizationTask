@@ -15,7 +15,6 @@ export class DashboardComponent implements OnInit {
   errorMessage: string = '';
   private cy: cytoscape.Core | null = null;
 
-  // Clean, standard paths now that angular.json is fixed
   readonly awsIcons = {
     ec2: 'assets/aws-icons/ec2.png',
     rds: 'assets/aws-icons/rds.png',
@@ -80,30 +79,24 @@ export class DashboardComponent implements OnInit {
       const rawNodes = this.awsData.nodes || [];
       const rawEdges = this.awsData.edges || [];
 
-      // --- NEW LOGIC: Fix EBS Node Binding ---
-      // 1. Create a map of all nodes to easily look them up
+      // EBS Parent Logic Fix
       const nodeMap = new Map();
       rawNodes.forEach((n: any) => nodeMap.set(n.id, n));
 
-      // 2. Loop through and find EBS nodes that are missing a parent
       rawNodes.forEach((n: any) => {
         if (n.type === 'EBS' && !n.parentId) {
-          // Find the edge that connects this EBS to an EC2 instance
           const attachedEdge = rawEdges.find((e: any) => e.source === n.id || e.target === n.id);
           
           if (attachedEdge) {
-            // Find the ID of the EC2 instance it is attached to
             const connectedNodeId = attachedEdge.source === n.id ? attachedEdge.target : attachedEdge.source;
             const connectedNode = nodeMap.get(connectedNodeId);
             
-            // If the EC2 instance has a parent (Subnet/VPC), put the EBS inside the exact same parent!
             if (connectedNode && connectedNode.parentId) {
               n.parentId = connectedNode.parentId;
             }
           }
         }
       });
-      // ----------------------------------------
 
       const validNodeIds = new Set(rawNodes.map((n: any) => n.id));
 
@@ -114,10 +107,22 @@ export class DashboardComponent implements OnInit {
           safeParent = undefined;
         }
 
+        // --- NEW LOGIC: Format the label for CIDR and IPs ---
+        let displayLabel = n.label ? purify.sanitize(n.label) : purify.sanitize(n.id);
+        
+        if (n.type === 'VPC' && n.cidr) {
+          displayLabel += `\n(${purify.sanitize(n.cidr)})`;
+        }
+        
+        if (n.type === 'EC2' && n.publicIp) {
+          displayLabel += `\nIP: ${purify.sanitize(n.publicIp)}`;
+        }
+        // ----------------------------------------------------
+
         return {
           data: {
             id: purify.sanitize(n.id),
-            label: n.label ? purify.sanitize(n.label) : purify.sanitize(n.id),
+            label: displayLabel,
             type: n.type ? purify.sanitize(n.type) : 'Unknown',
             parent: safeParent,
             status: n.status ? purify.sanitize(n.status) : 'unknown'
@@ -149,6 +154,7 @@ export class DashboardComponent implements OnInit {
             selector: 'node',
             style: {
               'label': 'data(label)',
+              'text-wrap': 'wrap', // <-- ADDED THIS: Allows \n to render correctly
               'text-valign': 'bottom',
               'text-margin-y': 8,
               'color': '#16191f',
@@ -161,7 +167,7 @@ export class DashboardComponent implements OnInit {
               'text-background-shape': 'roundrectangle'
             }
           },
-          // --- PARENT NODES (VPC & Subnet) - BORDERS ONLY ---
+          // PARENT NODES
           {
             selector: 'node[type="VPC"]',
             style: {
@@ -190,7 +196,7 @@ export class DashboardComponent implements OnInit {
               'padding': '25px'
             }
           },
-          // --- RESOURCE NODES (.png Icons) ---
+          // RESOURCES
           {
             selector: 'node[type="InternetGateway"], node[type="NATGateway"], node[type="EC2"], node[type="RDS"], node[type="SecurityGroup"], node[type="EBS"]',
             style: {
@@ -202,7 +208,6 @@ export class DashboardComponent implements OnInit {
               'background-fit': 'contain'
             }
           },
-          // Map to the specific .png assets
           { selector: 'node[type="InternetGateway"]', style: { 'background-image': this.awsIcons.igw } },
           { selector: 'node[type="NATGateway"]', style: { 'background-image': this.awsIcons.nat } },
           { selector: 'node[type="EC2"]', style: { 'background-image': this.awsIcons.ec2 } },
@@ -210,7 +215,7 @@ export class DashboardComponent implements OnInit {
           { selector: 'node[type="SecurityGroup"]', style: { 'background-image': this.awsIcons.sg } },
           { selector: 'node[type="EBS"]', style: { 'background-image': this.awsIcons.ebs } },
           
-          // --- EDGES ---
+          // EDGES
           {
             selector: 'edge',
             style: {

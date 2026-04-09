@@ -98,14 +98,15 @@ exports.fetchAwsInfrastructure = async (req, res) => {
         const nodes = [];
         const edges = [];
 
-        // 1. Map VPCs (Top Level Containers)
+        // 1. Map VPCs (Top Level Containers) - ADDED CIDR BLOCK
         if (vpcData.Vpcs) {
             vpcData.Vpcs.forEach(vpc => {
                 nodes.push({
                     id: vpc.VpcId,
                     label: getNameFromTags(vpc.Tags, vpc.VpcId),
                     type: 'VPC',
-                    status: vpc.State
+                    status: vpc.State,
+                    cidr: vpc.CidrBlock // <-- ADDED THIS
                 });
             });
         }
@@ -118,7 +119,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
                     label: getNameFromTags(subnet.Tags, subnet.SubnetId),
                     type: 'Subnet',
                     status: subnet.State,
-                    parentId: subnet.VpcId // Subnet sits inside VPC
+                    parentId: subnet.VpcId 
                 });
             });
         }
@@ -132,7 +133,6 @@ exports.fetchAwsInfrastructure = async (req, res) => {
                     type: 'InternetGateway'
                 });
 
-                // Draw edge showing which VPC the IGW is attached to
                 if (igw.Attachments) {
                     igw.Attachments.forEach(att => {
                         edges.push({
@@ -146,7 +146,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
             });
         }
 
-        // 4. Map NAT Gateways (Inside Subnets)
+        // 4. Map NAT Gateways
         if (natData.NatGateways) {
             natData.NatGateways.forEach(nat => {
                 nodes.push({
@@ -154,12 +154,12 @@ exports.fetchAwsInfrastructure = async (req, res) => {
                     label: getNameFromTags(nat.Tags, nat.NatGatewayId),
                     type: 'NATGateway',
                     status: nat.State,
-                    parentId: nat.SubnetId // NAT sits inside Subnet
+                    parentId: nat.SubnetId 
                 });
             });
         }
 
-        // 5. Map Security Groups (Placed inside VPCs)
+        // 5. Map Security Groups
         if (sgData.SecurityGroups) {
             sgData.SecurityGroups.forEach(sg => {
                 nodes.push({
@@ -171,7 +171,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
             });
         }
 
-        // 6. Map EC2 Instances (Inside SUBNETS now)
+        // 6. Map EC2 Instances - ADDED PUBLIC IP
         if (ec2Data.Reservations) {
             ec2Data.Reservations.forEach(resItem => {
                 if (resItem.Instances) {
@@ -181,7 +181,8 @@ exports.fetchAwsInfrastructure = async (req, res) => {
                             label: getNameFromTags(inst.Tags, inst.InstanceId),
                             type: 'EC2',
                             status: inst.State?.Name || 'unknown',
-                            parentId: inst.SubnetId || inst.VpcId // EC2 strictly inside its subnet
+                            parentId: inst.SubnetId || inst.VpcId,
+                            publicIp: inst.PublicIpAddress // <-- ADDED THIS (Will be undefined if no public IP)
                         });
 
                         if (inst.SecurityGroups) {
@@ -226,7 +227,6 @@ exports.fetchAwsInfrastructure = async (req, res) => {
         // 8. Map RDS Instances
         if (rdsData.DBInstances) {
             rdsData.DBInstances.forEach(db => {
-                // If RDS is in a subnet group, pick the first subnet to nest it, otherwise fallback to VPC
                 const parentId = (db.DBSubnetGroup && db.DBSubnetGroup.Subnets && db.DBSubnetGroup.Subnets.length > 0) 
                     ? db.DBSubnetGroup.Subnets[0].SubnetIdentifier 
                     : db.DBSubnetGroup?.VpcId;
@@ -252,7 +252,6 @@ exports.fetchAwsInfrastructure = async (req, res) => {
             });
         }
 
-        // Secure response with only required structural properties
         res.status(200).json({
             message: "Successfully fetched and mapped comprehensive cloud architecture!",
             data: {
