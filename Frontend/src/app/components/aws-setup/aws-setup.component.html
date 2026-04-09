@@ -1,0 +1,26 @@
+<div class="setup-container">
+  <h2>Connect Your AWS Account</h2>
+  
+  <div *ngIf="isLoading">Loading secure instructions...</div>
+  <div *ngIf="errorMessage" class="error-msg">{{ errorMessage }}</div>
+
+  <div *ngIf="!isLoading && !errorMessage" class="instructions-card">
+    <p>To securely visualize your architecture, please create a Read-Only IAM Role in your AWS account.</p>
+    
+    <ol>
+      <li>Go to AWS IAM -> Roles -> <strong>Create role</strong>.</li>
+      <li>Select <strong>AWS account</strong> -> <strong>Another AWS account</strong>.</li>
+      <li>Account ID: <code class="secret">{{ appAccountId }}</code></li>
+      <li>Check <strong>Require external ID</strong> and paste: <code class="secret">{{ externalId }}</code></li>
+      <li>Attach the policy: <strong>ReadOnlyAccess</strong>.</li>
+      <li>Create the role and paste the resulting <strong>Role ARN</strong> below.</li>
+    </ol>
+
+    <div class="form-group">
+      <label for="roleArn">Your IAM Role ARN:</label>
+      <input type="text" id="roleArn" [(ngModel)]="roleArnInput" placeholder="arn:aws:iam::123456789:role/MyRole">
+    </div>
+
+    <button (click)="onSubmit()" [disabled]="!roleArnInput">Connect and Visualize</button>
+  </div>
+</div>

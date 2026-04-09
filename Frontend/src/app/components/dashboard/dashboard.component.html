@@ -1,0 +1,93 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <div class="header-titles">
+      <div class="title-row">
+        <h2>Architecture Visualizer</h2>
+        <span class="version-tag">v2.0</span>
+      </div>
+      <p class="subtitle">Live Cloud Infrastructure Topology</p>
+    </div>
+    <div class="header-actions">
+      <div class="status-badge" *ngIf="!isLoading && !errorMessage">
+        <span class="pulse-dot"></span> 
+        <span class="status-text">System Live</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="modern-spinner"></div>
+    <span class="loading-text">Establishing secure connection & fetching topography...</span>
+  </div>
+
+  <div *ngIf="errorMessage" class="error-msg">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4m0 4h.01"/></svg>
+    <div class="error-text">
+      <strong>Connection Error</strong>
+      <p>{{ errorMessage }}</p>
+    </div>
+  </div>
+
+  <div [class.hidden]="isLoading || errorMessage || !awsData" class="graph-wrapper">
+    
+    <div class="graph-controls">
+      <button class="control-btn" (click)="zoomIn()" title="Zoom In">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
+      <button class="control-btn" (click)="zoomOut()" title="Zoom Out">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/></svg>
+      </button>
+      <div class="divider"></div>
+      <button class="control-btn" (click)="fitGraph()" title="Fit to Screen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 4h6v6H4zM14 4h6v6h-6zM14 14h6v6h-6zM4 14h6v6H4z"/></svg>
+      </button>
+    </div>
+
+    <div #cyContainer class="cy-container"></div>
+    
+    <div class="floating-legend">
+      <div class="legend-header">
+        <h4>Resource Legend</h4>
+        <div class="legend-badge">AWS</div>
+      </div>
+      
+      <div class="legend-grid">
+        <div class="legend-item">
+          <div class="icon-wrapper"><span class="legend-box vpc-box"></span></div>
+          <span class="item-label">VPC</span>
+        </div>
+        <div class="legend-item">
+          <div class="icon-wrapper"><span class="legend-box subnet-box"></span></div>
+          <span class="item-label">Subnet</span>
+        </div>
+        
+        <div class="legend-item">
+          <div class="icon-wrapper"><img src="../../../assets/aws-icons/ec2.png" alt="EC2"></div>
+          <span class="item-label">EC2 Instance</span>
+        </div>
+        <div class="legend-item">
+          <div class="icon-wrapper"><img src="../../../assets/aws-icons/rds.png" alt="RDS"></div>
+          <span class="item-label">RDS Database</span>
+        </div>
+
+        <div class="legend-item">
+          <div class="icon-wrapper"><img src="../../../assets/aws-icons/igw.png" alt="IGW"></div>
+          <span class="item-label">Internet Gateway</span>
+        </div>
+        <div class="legend-item">
+          <div class="icon-wrapper"><img src="../../../assets/aws-icons/nat.png" alt="NAT"></div>
+          <span class="item-label">NAT Gateway</span>
+        </div>
+        <div class="legend-item">
+          <div class="icon-wrapper"><img src="../../../assets/aws-icons/ebs.png" alt="EBS"></div>
+          <span class="item-label">EBS Volume</span>
+        </div>
+        <div class="legend-item">
+          <div class="icon-wrapper"><img src="../../../assets/aws-icons/sg.png" alt="SG"></div>
+          <span class="item-label">Security Group</span>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+</div>

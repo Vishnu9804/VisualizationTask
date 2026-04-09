@@ -1,0 +1,64 @@
+<div class="auth-wrapper">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h2>Create an Account</h2>
+      <p>Start managing your AWS visualizer today</p>
+    </div>
+
+    <div *ngIf="errorMessage" class="alert error">
+      <span class="icon">⚠️</span> {{ errorMessage }}
+    </div>
+
+    <form (ngSubmit)="register()" #registerForm="ngForm" class="auth-form">
+      
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input 
+          type="email" 
+          id="email" 
+          name="email" 
+          [(ngModel)]="email" 
+          placeholder="you@example.com" 
+          required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Create Password</label>
+        <div class="password-input-wrapper">
+          <input 
+            [type]="showPassword ? 'text' : 'password'" 
+            id="password" 
+            name="password" 
+            [(ngModel)]="password" 
+            (input)="onPasswordChange()"
+            placeholder="Min 8 characters" 
+            required>
+          <button type="button" class="toggle-btn" (click)="togglePasswordVisibility()">
+            {{ showPassword ? '🚫' : '👁️' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="password-strength" *ngIf="password.length > 0">
+        <p class="strength-title">Password must contain:</p>
+        <ul class="strength-list">
+          <li [class.valid]="strength.length"><span class="check">{{ strength.length ? '✓' : '○' }}</span> At least 8 characters</li>
+          <li [class.valid]="strength.upper"><span class="check">{{ strength.upper ? '✓' : '○' }}</span> One uppercase letter</li>
+          <li [class.valid]="strength.lower"><span class="check">{{ strength.lower ? '✓' : '○' }}</span> One lowercase letter</li>
+          <li [class.valid]="strength.number"><span class="check">{{ strength.number ? '✓' : '○' }}</span> One number</li>
+          <li [class.valid]="strength.special"><span class="check">{{ strength.special ? '✓' : '○' }}</span> One special character (!@#$...)</li>
+        </ul>
+      </div>
+
+      <button type="submit" class="submit-btn" [disabled]="isLoading || !strength.isValid">
+        <span *ngIf="!isLoading">Register</span>
+        <span *ngIf="isLoading" class="spinner"></span>
+      </button>
+
+    </form>
+    
+    <div class="auth-footer">
+      <p>Already have an account? <a routerLink="/login">Sign in</a></p>
+    </div>
+  </div>
+</div>
