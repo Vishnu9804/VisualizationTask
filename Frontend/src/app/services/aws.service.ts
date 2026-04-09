@@ -11,19 +11,26 @@ export class AwsService {
   constructor(private http: HttpClient) {}
 
   getAwsSetupInfo(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/setup-info`);
+    // 1. Fixed URL from '/setup-info' to '/setup'
+    // 2. Added withCredentials so the browser sends the auth cookie
+    return this.http.get(`${this.apiUrl}/setup`, { withCredentials: true });
   }
 
   saveRoleArn(roleArn: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/save-role`, { roleArn });
+    // 1. Fixed URL from '/save-role' to '/role'
+    // 2. Added withCredentials
+    return this.http.post(`${this.apiUrl}/role`, { roleArn }, { withCredentials: true });
   }
 
-  // --- NEW: Accept region as optional param ---
   getInfrastructure(region?: string): Observable<any> {
     let params = new HttpParams();
     if (region) {
       params = params.set('region', region);
     }
-    return this.http.get(`${this.apiUrl}/infrastructure`, { params });
+    // Added withCredentials here too so the dashboard graph doesn't fail!
+    return this.http.get(`${this.apiUrl}/infrastructure`, { 
+      params: params, 
+      withCredentials: true 
+    });
   }
 }
