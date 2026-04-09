@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; // <-- 1. IMPORTED HERE
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core'; 
 import { AwsService } from '../../services/aws.service';
 import { Router } from '@angular/router';
 
@@ -23,15 +23,18 @@ export class AwsSetupComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.awsService.getSetupInfo().subscribe({
-      next: (res) => {
+    // FIXED: Method name changed to getAwsSetupInfo()
+    this.awsService.getAwsSetupInfo().subscribe({
+      // FIXED: Added ': any' to res
+      next: (res: any) => {
         console.log("SUCCESS DATA FROM BACKEND:", res);
         this.appAccountId = res.appAccountId;
         this.externalId = res.externalId;
         this.isLoading = false;
         this.cdr.detectChanges(); 
       },
-      error: (err) => {
+      // FIXED: Added ': any' to err
+      error: (err: any) => {
         console.error("ERROR FROM BACKEND:", err);
         this.errorMessage = 'Failed to load setup instructions. Are you logged in?';
         this.isLoading = false;
@@ -44,11 +47,13 @@ export class AwsSetupComponent implements OnInit {
     if (!this.roleArnInput) return;
 
     this.awsService.saveRoleArn(this.roleArnInput).subscribe({
-      next: (res) => {
+      // FIXED: Added ': any' to res
+      next: (res: any) => {
         alert('AWS Role Connected Successfully!');
         this.router.navigate(['/dashboard']); 
       },
-      error: (err) => {
+      // FIXED: Added ': any' to err
+      error: (err: any) => {
         this.errorMessage = err.error.error || 'Failed to save Role ARN.';
         this.cdr.detectChanges(); 
       }

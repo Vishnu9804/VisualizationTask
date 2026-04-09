@@ -15,6 +15,25 @@ export class DashboardComponent implements OnInit {
   errorMessage: string = '';
   private cy: cytoscape.Core | null = null;
 
+  // --- NEW: List of available regions ---
+  availableRegions = [
+    { id: 'us-east-1', name: 'US East (N. Virginia)' },
+    { id: 'us-east-2', name: 'US East (Ohio)' },
+    { id: 'us-west-1', name: 'US West (N. California)' },
+    { id: 'us-west-2', name: 'US West (Oregon)' },
+    { id: 'ap-south-1', name: 'Asia Pacific (Mumbai)' },
+    { id: 'ap-northeast-1', name: 'Asia Pacific (Tokyo)' },
+    { id: 'ap-northeast-2', name: 'Asia Pacific (Seoul)' },
+    { id: 'ap-southeast-1', name: 'Asia Pacific (Singapore)' },
+    { id: 'ap-southeast-2', name: 'Asia Pacific (Sydney)' },
+    { id: 'ca-central-1', name: 'Canada (Central)' },
+    { id: 'eu-central-1', name: 'Europe (Frankfurt)' },
+    { id: 'eu-west-1', name: 'Europe (Ireland)' },
+    { id: 'eu-west-2', name: 'Europe (London)' },
+    { id: 'sa-east-1', name: 'South America (São Paulo)' }
+  ];
+  selectedRegion = 'ap-south-1'; // Default region
+
   readonly awsIcons = {
     ec2: 'assets/aws-icons/ec2.png',
     rds: 'assets/aws-icons/rds.png',
@@ -32,7 +51,23 @@ export class DashboardComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.awsService.getInfrastructure().subscribe({
+    this.fetchData();
+  }
+
+  // --- NEW: Function to handle region changes ---
+  onRegionChange(event: any): void {
+    this.selectedRegion = event.target.value;
+    this.fetchData();
+  }
+
+  // --- NEW: Extracted fetching logic ---
+  private fetchData(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.awsData = null;
+    
+    // Pass the selected region to the service
+    this.awsService.getInfrastructure(this.selectedRegion).subscribe({
       next: (res) => {
         this.awsData = res.data;
         this.isLoading = false;
@@ -79,7 +114,6 @@ export class DashboardComponent implements OnInit {
       const rawNodes = this.awsData.nodes || [];
       const rawEdges = this.awsData.edges || [];
 
-      // EBS Parent Logic Fix
       const nodeMap = new Map();
       rawNodes.forEach((n: any) => nodeMap.set(n.id, n));
 
@@ -107,7 +141,6 @@ export class DashboardComponent implements OnInit {
           safeParent = undefined;
         }
 
-        // --- NEW LOGIC: Format the label for CIDR and IPs ---
         let displayLabel = n.label ? purify.sanitize(n.label) : purify.sanitize(n.id);
         
         if (n.type === 'VPC' && n.cidr) {
@@ -117,7 +150,6 @@ export class DashboardComponent implements OnInit {
         if (n.type === 'EC2' && n.publicIp) {
           displayLabel += `\nIP: ${purify.sanitize(n.publicIp)}`;
         }
-        // ----------------------------------------------------
 
         return {
           data: {
@@ -154,7 +186,7 @@ export class DashboardComponent implements OnInit {
             selector: 'node',
             style: {
               'label': 'data(label)',
-              'text-wrap': 'wrap', // <-- ADDED THIS: Allows \n to render correctly
+              'text-wrap': 'wrap', 
               'text-valign': 'bottom',
               'text-margin-y': 8,
               'color': '#16191f',
@@ -167,7 +199,6 @@ export class DashboardComponent implements OnInit {
               'text-background-shape': 'roundrectangle'
             }
           },
-          // PARENT NODES
           {
             selector: 'node[type="VPC"]',
             style: {
@@ -196,7 +227,6 @@ export class DashboardComponent implements OnInit {
               'padding': '25px'
             }
           },
-          // RESOURCES
           {
             selector: 'node[type="InternetGateway"], node[type="NATGateway"], node[type="EC2"], node[type="RDS"], node[type="SecurityGroup"], node[type="EBS"]',
             style: {
@@ -214,8 +244,6 @@ export class DashboardComponent implements OnInit {
           { selector: 'node[type="RDS"]', style: { 'background-image': this.awsIcons.rds } },
           { selector: 'node[type="SecurityGroup"]', style: { 'background-image': this.awsIcons.sg } },
           { selector: 'node[type="EBS"]', style: { 'background-image': this.awsIcons.ebs } },
-          
-          // EDGES
           {
             selector: 'edge',
             style: {

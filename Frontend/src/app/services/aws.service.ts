@@ -1,27 +1,29 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AwsService {
-  private apiUrl = 'http://localhost:3000/api/aws';
+  private apiUrl = 'http://localhost:5000/api/aws';
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
-  // 1. Fetch the App ID and External ID for the instructions
-  getSetupInfo(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/setup`, { withCredentials: true });
+  getAwsSetupInfo(): Observable<any> {
+    return this.http.get(`${this.apiUrl}/setup-info`);
   }
 
-  // 2. Send the Role ARN to the backend to save in the database
   saveRoleArn(roleArn: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/role`, { roleArn }, { withCredentials: true });
+    return this.http.post(`${this.apiUrl}/save-role`, { roleArn });
   }
 
-  // 3. Fetch the massive JSON block of cloud architecture
-  getInfrastructure(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/infrastructure`, { withCredentials: true });
+  // --- NEW: Accept region as optional param ---
+  getInfrastructure(region?: string): Observable<any> {
+    let params = new HttpParams();
+    if (region) {
+      params = params.set('region', region);
+    }
+    return this.http.get(`${this.apiUrl}/infrastructure`, { params });
   }
 }

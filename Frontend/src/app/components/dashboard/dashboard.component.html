@@ -7,7 +7,17 @@
       </div>
       <p class="subtitle">Live Cloud Infrastructure Topology</p>
     </div>
+    
     <div class="header-actions">
+      <div class="region-selector">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+        <select (change)="onRegionChange($event)">
+          <option *ngFor="let r of availableRegions" [value]="r.id" [selected]="r.id === selectedRegion">
+            {{ r.name }}
+          </option>
+        </select>
+      </div>
+
       <div class="status-badge" *ngIf="!isLoading && !errorMessage">
         <span class="pulse-dot"></span> 
         <span class="status-text">System Live</span>
@@ -17,7 +27,7 @@
 
   <div *ngIf="isLoading" class="loading-state">
     <div class="modern-spinner"></div>
-    <span class="loading-text">Establishing secure connection & fetching topography...</span>
+    <span class="loading-text">Establishing secure connection to {{ selectedRegion }} & fetching topography...</span>
   </div>
 
   <div *ngIf="errorMessage" class="error-msg">
