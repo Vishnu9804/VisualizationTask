@@ -75,7 +75,8 @@ exports.fetchAwsInfrastructure = async (req, res) => {
             sessionToken: assumedRole.Credentials.SessionToken
         };
 
-        const TARGET_REGION = 'ap-south-1'; 
+        // --- NEW: Dynamic Region Support ---
+        const TARGET_REGION = req.query.region || 'ap-south-1'; 
         const targetClientConfig = { region: TARGET_REGION, credentials: tempCredentials };
         
         const targetEc2Client = new EC2Client(targetClientConfig);
@@ -98,7 +99,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
         const nodes = [];
         const edges = [];
 
-        // 1. Map VPCs (Top Level Containers) - ADDED CIDR BLOCK
+        // 1. Map VPCs
         if (vpcData.Vpcs) {
             vpcData.Vpcs.forEach(vpc => {
                 nodes.push({
@@ -106,12 +107,12 @@ exports.fetchAwsInfrastructure = async (req, res) => {
                     label: getNameFromTags(vpc.Tags, vpc.VpcId),
                     type: 'VPC',
                     status: vpc.State,
-                    cidr: vpc.CidrBlock // <-- ADDED THIS
+                    cidr: vpc.CidrBlock
                 });
             });
         }
 
-        // 2. Map Subnets (Inside VPCs)
+        // 2. Map Subnets
         if (subnetData.Subnets) {
             subnetData.Subnets.forEach(subnet => {
                 nodes.push({
@@ -171,7 +172,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
             });
         }
 
-        // 6. Map EC2 Instances - ADDED PUBLIC IP
+        // 6. Map EC2 Instances
         if (ec2Data.Reservations) {
             ec2Data.Reservations.forEach(resItem => {
                 if (resItem.Instances) {
@@ -182,7 +183,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
                             type: 'EC2',
                             status: inst.State?.Name || 'unknown',
                             parentId: inst.SubnetId || inst.VpcId,
-                            publicIp: inst.PublicIpAddress // <-- ADDED THIS (Will be undefined if no public IP)
+                            publicIp: inst.PublicIpAddress
                         });
 
                         if (inst.SecurityGroups) {
@@ -253,7 +254,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
         }
 
         res.status(200).json({
-            message: "Successfully fetched and mapped comprehensive cloud architecture!",
+            message: `Successfully fetched infrastructure for region ${TARGET_REGION}!`,
             data: {
                 nodes: nodes,
                 edges: edges
@@ -262,6 +263,6 @@ exports.fetchAwsInfrastructure = async (req, res) => {
 
     } catch (error) {
         console.error("STS / Resource Fetch Error:", error);
-        res.status(403).json({ error: "Failed to access target AWS account." });
+        res.status(403).json({ error: "Failed to access target AWS account or fetch region data." });
     }
 };
