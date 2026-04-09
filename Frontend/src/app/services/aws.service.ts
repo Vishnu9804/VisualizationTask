@@ -6,7 +6,7 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class AwsService {
-  private apiUrl = 'http://localhost:5000/api/aws';
+  private apiUrl = 'http://localhost:3000/api/aws';
 
   constructor(private http: HttpClient) {}
 
