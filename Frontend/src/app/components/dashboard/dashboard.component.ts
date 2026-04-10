@@ -1,7 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, ElementRef, ViewChild } from '@angular/core';
 import { AwsService } from '../../services/aws.service';
-import { Router } from '@angular/router'; // IMPORT ROUTER
-import { AuthService } from '@auth0/auth0-angular'; // IMPORT AUTHSERVICE
+import { Router } from '@angular/router'; 
+import { AuthService } from '@auth0/auth0-angular'; 
 import cytoscape from 'cytoscape'; 
 import * as DOMPurify from 'dompurify';
 
@@ -49,8 +49,8 @@ export class DashboardComponent implements OnInit {
   constructor(
     private awsService: AwsService,
     private cdr: ChangeDetectorRef,
-    private router: Router,       // Inject Router
-    private auth: AuthService     // Inject AuthService
+    private router: Router,       
+    private auth: AuthService     
   ) {}
 
   ngOnInit(): void {
@@ -78,16 +78,12 @@ export class DashboardComponent implements OnInit {
       error: (err) => {
         console.error("FAILED TO FETCH AWS DATA:", err);
         
-        // --- SECURITY / UX HANDLERS ---
-        
-        // 1. Session Expired (Industry Standard Redirect)
         if (err.status === 401) {
             alert("Your session has expired for security reasons. Please log in again.");
             this.auth.logout({ logoutParams: { returnTo: window.location.origin } });
             return;
         }
 
-        // 2. User hasn't configured ARN yet (UX Redirect)
         if (err.status === 400 && err.error?.error === "AWS account not connected yet.") {
             this.router.navigate(['/aws-setup']);
             return;
@@ -100,10 +96,6 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // ... KEEP YOUR EXACT SAME GRAPH METHODS BELOW THIS LINE:
-  // zoomIn(), zoomOut(), fitGraph(), and private initGraph() ...
-  // DO NOT DELETE cytoscape rendering logic!
-  
   zoomIn() { if (this.cy) { this.cy.zoom(this.cy.zoom() * 1.25); this.cy.center(); } }
   zoomOut() { if (this.cy) { this.cy.zoom(this.cy.zoom() * 0.8); this.cy.center(); } }
   fitGraph() { if (this.cy) { this.cy.fit(undefined, 50); this.cy.center(); } }
@@ -147,9 +139,37 @@ export class DashboardComponent implements OnInit {
         elements: { nodes, edges },
         minZoom: 0.2, maxZoom: 3.0, 
         style: [
-          { selector: 'node', style: { 'label': 'data(label)', 'text-wrap': 'wrap', 'text-valign': 'bottom', 'text-margin-y': 8, 'color': '#16191f', 'font-size': '12px', 'font-family': '"Amazon Ember", "Helvetica Neue", Helvetica, Arial, sans-serif', 'font-weight': 600, 'text-background-color': '#ffffff', 'text-background-opacity': 0.8, 'text-background-padding': '4px', 'text-background-shape': 'roundrectangle' } },
-          { selector: 'node[type="VPC"]', style: { 'shape': 'round-rectangle', 'background-color': '#ffffff', 'background-opacity': 0.4, 'border-color': '#3F8624', 'border-width': 2, 'border-style': 'solid', 'text-valign': 'top', 'text-margin-y': -8, 'padding': '40px' } },
-          { selector: 'node[type="Subnet"]', style: { 'shape': 'round-rectangle', 'background-color': '#ffffff', 'background-opacity': 0.6, 'border-color': '#00A4A6', 'border-width': 2, 'border-style': 'dashed', 'text-valign': 'top', 'text-margin-y': -8, 'padding': '25px' } },
+          /* --- DARK THEME CYTOSCAPE STYLES --- */
+          { 
+            selector: 'node', 
+            style: { 
+              'label': 'data(label)', 'text-wrap': 'wrap', 'text-valign': 'bottom', 'text-margin-y': 8, 
+              'color': '#f8fafc', /* Crisp light text for dark mode */
+              'font-size': '12px', 'font-family': '"Amazon Ember", "Helvetica Neue", Helvetica, Arial, sans-serif', 'font-weight': 600, 
+              'text-background-color': '#1e293b', /* Dark slate background behind text */
+              'text-background-opacity': 0.85, 'text-background-padding': '4px', 'text-background-shape': 'roundrectangle' 
+            } 
+          },
+          { 
+            selector: 'node[type="VPC"]', 
+            style: { 
+              'shape': 'round-rectangle', 
+              'background-color': '#4ade80', /* Lighter neon green for VPC background */
+              'background-opacity': 0.05, 
+              'border-color': '#4ade80', /* Neon green border */
+              'border-width': 2, 'border-style': 'solid', 'text-valign': 'top', 'text-margin-y': -8, 'padding': '40px' 
+            } 
+          },
+          { 
+            selector: 'node[type="Subnet"]', 
+            style: { 
+              'shape': 'round-rectangle', 
+              'background-color': '#2dd4bf', /* Bright teal for Subnet */
+              'background-opacity': 0.05, 
+              'border-color': '#2dd4bf', 
+              'border-width': 2, 'border-style': 'dashed', 'text-valign': 'top', 'text-margin-y': -8, 'padding': '25px' 
+            } 
+          },
           { selector: 'node[type="InternetGateway"], node[type="NATGateway"], node[type="EC2"], node[type="RDS"], node[type="SecurityGroup"], node[type="EBS"]', style: { 'shape': 'rectangle', 'background-opacity': 0, 'border-width': 0, 'width': 48, 'height': 48, 'background-fit': 'contain' } },
           { selector: 'node[type="InternetGateway"]', style: { 'background-image': this.awsIcons.igw } },
           { selector: 'node[type="NATGateway"]', style: { 'background-image': this.awsIcons.nat } },
@@ -157,7 +177,19 @@ export class DashboardComponent implements OnInit {
           { selector: 'node[type="RDS"]', style: { 'background-image': this.awsIcons.rds } },
           { selector: 'node[type="SecurityGroup"]', style: { 'background-image': this.awsIcons.sg } },
           { selector: 'node[type="EBS"]', style: { 'background-image': this.awsIcons.ebs } },
-          { selector: 'edge', style: { 'width': 2, 'line-color': '#aab7c4', 'target-arrow-color': '#aab7c4', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'label': 'data(label)', 'font-size': '10px', 'font-family': '"Amazon Ember", "Helvetica Neue", Helvetica, Arial, sans-serif', 'text-rotation': 'autorotate', 'color': '#555', 'text-background-color': '#fff', 'text-background-opacity': 0.8 } },
+          { 
+            selector: 'edge', 
+            style: { 
+              'width': 2, 
+              'line-color': '#64748b', /* Slate blue/gray for edge lines */
+              'target-arrow-color': '#64748b', 
+              'target-arrow-shape': 'triangle', 'curve-style': 'bezier', 'label': 'data(label)', 
+              'font-size': '10px', 'font-family': '"Amazon Ember", "Helvetica Neue", Helvetica, Arial, sans-serif', 'text-rotation': 'autorotate', 
+              'color': '#94a3b8', /* Light edge label text */
+              'text-background-color': '#0f172a', /* Edge label bg matches global bg */
+              'text-background-opacity': 0.9 
+            } 
+          },
           { selector: 'edge[relation="attached_to_vpc"]', style: { 'display': 'none' } }
         ],
         layout: { name: 'cose', padding: 50, spacingFactor: 1.3, animate: true, animationDuration: 500 }

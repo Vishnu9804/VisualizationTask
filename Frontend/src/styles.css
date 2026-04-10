@@ -1,26 +1,31 @@
-/* You can add global styles to this file, and also import other style files */
-/* Add this to your existing styles.css */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 body {
   margin: 0;
-  font-family: 'Inter', sans-serif;
-  background-color: #f4f7f6;
-  color: #333;
+  font-family: 'Inter', "Amazon Ember", sans-serif;
+  background-color: #0f172a; /* Deep slate dark */
+  color: #f8fafc; /* Crisp off-white */
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar for better UX */
+/* Custom Modern Dark Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #f1f1f1; 
+  background: #0f172a; 
 }
 ::-webkit-scrollbar-thumb {
-  background: #c1c1c1; 
+  background: #334155; 
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8; 
+  background: #475569; 
+}
+
+/* Base resets for inputs and buttons across app */
+input, button, select {
+  font-family: 'Inter', sans-serif;
 }

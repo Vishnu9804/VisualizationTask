@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-login',
@@ -7,14 +8,21 @@ import { AuthService } from '@auth0/auth0-angular';
   styleUrls: ['./login.component.css'],
   standalone: false
 })
-export class LoginComponent {
-  // Inject the Auth0 service instead of your custom one
-  constructor(public auth: AuthService) {}
+export class LoginComponent implements OnInit {
 
-  login() {
-    // Triggers the redirect to Auth0
-    this.auth.loginWithRedirect({
-      appState: { target: '/aws-setup' }
+  constructor(public auth: AuthService, private router: Router) {}
+
+  ngOnInit(): void {
+    // If the user is already logged in, skip this page and go straight to dashboard
+    this.auth.isAuthenticated$.subscribe(isAuthenticated => {
+      if (isAuthenticated) {
+        this.router.navigate(['/dashboard']);
+      }
     });
+  }
+
+  // Triggers the secure Auth0 Universal Login page
+  login(): void {
+    this.auth.loginWithRedirect();
   }
 }
