@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 @Injectable({
@@ -11,15 +11,13 @@ export class AwsService {
   constructor(private http: HttpClient) {}
 
   getAwsSetupInfo(): Observable<any> {
-    // 1. Fixed URL from '/setup-info' to '/setup'
-    // 2. Added withCredentials so the browser sends the auth cookie
-    return this.http.get(`${this.apiUrl}/setup`, { withCredentials: true });
+    // Removed withCredentials
+    return this.http.get(`${this.apiUrl}/setup`);
   }
 
   saveRoleArn(roleArn: string): Observable<any> {
-    // 1. Fixed URL from '/save-role' to '/role'
-    // 2. Added withCredentials
-    return this.http.post(`${this.apiUrl}/role`, { roleArn }, { withCredentials: true });
+    // Removed withCredentials
+    return this.http.post(`${this.apiUrl}/role`, { roleArn });
   }
 
   getInfrastructure(region?: string): Observable<any> {
@@ -27,10 +25,9 @@ export class AwsService {
     if (region) {
       params = params.set('region', region);
     }
-    // Added withCredentials here too so the dashboard graph doesn't fail!
+    // Removed withCredentials
     return this.http.get(`${this.apiUrl}/infrastructure`, { 
-      params: params, 
-      withCredentials: true 
+      params: params 
     });
   }
 }
