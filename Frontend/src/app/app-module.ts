@@ -34,7 +34,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
       authorizationParams: {
         redirect_uri: window.location.origin,
         // The audience defines which backend API the token is valid for
-        audience: 'YOUR_AUTH0_AUDIENCE' 
+        audience: 'https://dev-rjpc2w10pgu3fftq.us.auth0.com/api/v2/' 
       },
       httpInterceptor: {
         allowedList: [
@@ -43,7 +43,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
             uri: 'http://localhost:3000/api/*',
             tokenOptions: {
               authorizationParams: {
-                audience: 'YOUR_AUTH0_AUDIENCE'
+                audience: 'https://dev-rjpc2w10pgu3fftq.us.auth0.com/api/v2/'
               }
             }
           }

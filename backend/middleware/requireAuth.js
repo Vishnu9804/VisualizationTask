@@ -3,7 +3,7 @@ const { auth } = require('express-oauth2-jwt-bearer');
 
 // 1. Verify the token against Auth0's public keys
 const checkJwt = auth({
-  audience: 'YOUR_AUTH0_AUDIENCE',
+  audience: 'https://dev-rjpc2w10pgu3fftq.us.auth0.com/api/v2/',
   issuerBaseURL: `https://dev-rjpc2w10pgu3fftq.us.auth0.com/`, // Remember the trailing slash!
   tokenSigningAlg: 'RS256'
 });
