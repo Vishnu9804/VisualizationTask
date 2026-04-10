@@ -30,7 +30,7 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
       domain: 'dev-rjpc2w10pgu3fftq.us.auth0.com', 
       clientId: 'BIwK8dnae5qbm9m3Zui3xWrBlf9Yo1Xt',
       authorizationParams: {
-        redirect_uri: window.location.origin,
+        redirect_uri: window.location.origin + '/login',
         // USE THE CUSTOM API IDENTIFIER HERE
         audience: 'https://fortress-api' 
       },
