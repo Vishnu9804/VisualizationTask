@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const crypto = require('crypto');
 // 1. IMPORT AssumeRoleWithWebIdentityCommand
 const { STSClient, AssumeRoleWithWebIdentityCommand } = require('@aws-sdk/client-sts');
 const { 
@@ -30,15 +31,32 @@ const getNameFromTags = (tags, fallbackId) => {
 
 exports.getAwsSetupInfo = async (req, res) => {
     try {
-        const result = await db.query('SELECT aws_external_id FROM users WHERE id = $1', [req.userId]);
-        if (result.rows.length === 0) return res.status(404).json({ error: "User not found." });
+        // req.userId now contains the string: "google-oauth2|..." or "auth0|..."
+        let result = await db.query('SELECT aws_external_id FROM users WHERE id = $1', [req.userId]);
+
+        // THE UPSERT LOGIC: If the user doesn't exist in our DB yet, create them!
+        if (result.rows.length === 0) {
+            console.log("New Auth0 user detected. Creating local DB record...");
+            
+            // Generate a brand new, secure External ID
+            const newExternalId = crypto.randomUUID(); 
+
+            // Insert the Auth0 ID and the new External ID into PostgreSQL
+            await db.query(
+                'INSERT INTO users (id, aws_external_id) VALUES ($1, $2)', 
+                [req.userId, newExternalId]
+            );
+
+            // Fetch the result again now that the user exists
+            result = await db.query('SELECT aws_external_id FROM users WHERE id = $1', [req.userId]);
+        }
 
         res.status(200).json({
             appAccountId: process.env.APP_AWS_ACCOUNT_ID, 
             externalId: result.rows[0].aws_external_id    
         });
     } catch (error) {
-        console.error(error);
+        console.error("AWS Setup Info Error:", error);
         res.status(500).json({ error: "Failed to fetch AWS setup info." });
     }
 };
