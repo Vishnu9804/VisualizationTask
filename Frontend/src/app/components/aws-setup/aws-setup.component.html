@@ -4,13 +4,21 @@
   <div *ngIf="isLoading" class="loader">Loading setup instructions...</div>
   <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
 
+  <div *ngIf="isConnected && !isLoading" class="alert alert-success mb-4 p-3 border rounded">
+    <h4 class="text-success">You are already connected!</h4>
+    <p>Your mapped IAM Role ARN is: <strong>{{ existingArn }}</strong></p>
+    <button class="btn btn-success me-2" (click)="goToDashboard()">Go to Dashboard</button>
+    <hr>
+    <p class="text-muted small mb-0">If you want to map a <em>different</em> role to your account, you can override it by following the instructions below.</p>
+  </div>
+
   <div *ngIf="!isLoading && !errorMessage" class="instructions">
     <p>To allow this application to visualize your AWS infrastructure, you must create an IAM Role in your AWS account using an Identity Provider (OIDC).</p>
     
     <ol>
       <li>Go to the AWS IAM Console -> <strong>Roles</strong> -> <strong>Create Role</strong>.</li>
       <li>Select <strong>Web identity</strong>. Choose your Auth0 application as the Identity Provider.</li>
-      <li>Attach a policy that grants <code>ReadOnlyAccess</code> (or custom describe permissions for EC2, VPC, RDS, S3).</li>
+      <li>Attach a policy that grants <code>ReadOnlyAccess</code>.</li>
       <li><strong>CRITICAL SECURITY STEP:</strong> Edit the Role's Trust Relationship to ensure only <em>you</em> can assume it. Copy and paste the policy below into the Trust Relationships tab:</li>
     </ol>
 
@@ -46,7 +54,7 @@
     </div>
 
     <button class="btn btn-primary mt-3" (click)="onSubmit()" [disabled]="!roleArnInput">
-      Connect Infrastructure
+      {{ isConnected ? 'Update Connection' : 'Connect Infrastructure' }}
     </button>
   </div>
 </div>

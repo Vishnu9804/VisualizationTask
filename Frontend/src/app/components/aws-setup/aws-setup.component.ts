@@ -15,6 +15,9 @@ export class AwsSetupComponent implements OnInit {
   isLoading: boolean = true;
   errorMessage: string = '';
 
+  isConnected: boolean = false;
+  existingArn: string = '';
+
   constructor(
     private awsService: AwsService, 
     private router: Router,
@@ -22,15 +25,29 @@ export class AwsSetupComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // First, check if they are already connected
+    this.awsService.checkConnection().subscribe({
+      next: (res: any) => {
+        if (res.isConnected) {
+          this.isConnected = true;
+          this.existingArn = res.roleArn;
+        }
+        this.fetchSetupInstructions();
+      },
+      error: (err: any) => {
+        this.fetchSetupInstructions(); // fallback
+      }
+    });
+  }
+
+  fetchSetupInstructions() {
     this.awsService.getAwsSetupInfo().subscribe({
       next: (res: any) => {
-        // We only care about the user ID now for the trust policy
         this.auth0UserId = res.auth0UserId;
         this.isLoading = false;
         this.cdr.detectChanges(); 
       },
       error: (err: any) => {
-        console.error("ERROR FROM BACKEND:", err);
         this.errorMessage = 'Failed to load setup instructions. Are you logged in?';
         this.isLoading = false;
         this.cdr.detectChanges();
@@ -51,5 +68,9 @@ export class AwsSetupComponent implements OnInit {
         this.cdr.detectChanges(); 
       }
     });
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/dashboard']);
   }
 }
