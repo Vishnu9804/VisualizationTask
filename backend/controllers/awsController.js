@@ -79,14 +79,22 @@ exports.fetchAwsInfrastructure = async (req, res) => {
         const userResult = await db.query('SELECT aws_role_arn FROM users WHERE id = $1', [req.userId]);
         const user = userResult.rows[0];
 
-        if (!user || !user.aws_role_arn) return res.status(400).json({ error: "AWS account not connected yet." });
-        if (!req.rawToken) return res.status(401).json({ error: "Missing identity token." });
+        if (!user.aws_role_arn) return res.status(400).json({ error: "AWS account not connected yet." });
 
-        // 2. THE BIG CHANGE: Assume role using the Auth0 JWT directly
+        // 1. Grab the ID Token we just sent from the frontend custom header
+        const idToken = req.headers['x-amz-id-token'];
+        if (!idToken) {
+            return res.status(401).json({ error: "Missing AWS ID Token." });
+        }
+
+        // 2. AWS forbids '|' in session names. Replace any special characters with a dash.
+        const safeSessionName = req.userId.replace(/[^a-zA-Z0-9-]/g, '-');
+
+        // 3. Trade the proper OIDC ID Token for AWS Credentials
         const assumedRole = await stsClient.send(new AssumeRoleWithWebIdentityCommand({
             RoleArn: user.aws_role_arn,
-            RoleSessionName: `VisualizationApp-Session`,
-            WebIdentityToken: req.rawToken, // The Auth0 token passed from frontend to backend to AWS
+            RoleSessionName: `OIDC-Session-${safeSessionName}`,
+            WebIdentityToken: idToken, // <-- Passing the raw ID token here
             DurationSeconds: 900
         }));
         
@@ -96,6 +104,7 @@ exports.fetchAwsInfrastructure = async (req, res) => {
             sessionToken: assumedRole.Credentials.SessionToken
         };
 
+        // --- NEW: Dynamic Region Support ---
         const TARGET_REGION = req.query.region || 'ap-south-1'; 
         const targetClientConfig = { region: TARGET_REGION, credentials: tempCredentials };
         
