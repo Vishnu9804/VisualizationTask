@@ -7,7 +7,6 @@ import { AuthModule, AuthHttpInterceptor } from '@auth0/auth0-angular';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
-import { RegisterComponent } from './components/register/register.component';
 import { LoginComponent } from './components/login/login.component';
 import { AwsSetupComponent } from './components/aws-setup/aws-setup.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
@@ -15,7 +14,6 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
 @NgModule({
   declarations: [
     App,
-    RegisterComponent,
     LoginComponent,
     AwsSetupComponent,   
     DashboardComponent   

@@ -1,26 +1,16 @@
 const db = require('../config/db');
 const crypto = require('crypto');
-// 1. IMPORT AssumeRoleWithWebIdentityCommand
 const { STSClient, AssumeRoleWithWebIdentityCommand } = require('@aws-sdk/client-sts');
 const { 
-    EC2Client, 
-    DescribeInstancesCommand, 
-    DescribeVpcsCommand,
-    DescribeSubnetsCommand,
-    DescribeSecurityGroupsCommand,
-    DescribeVolumesCommand,
-    DescribeNatGatewaysCommand,       
-    DescribeInternetGatewaysCommand   
+    EC2Client, DescribeInstancesCommand, DescribeVpcsCommand,
+    DescribeSubnetsCommand, DescribeSecurityGroupsCommand,
+    DescribeVolumesCommand, DescribeNatGatewaysCommand, DescribeInternetGatewaysCommand   
 } = require('@aws-sdk/client-ec2');
 const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3');
 const { RDSClient, DescribeDBInstancesCommand } = require('@aws-sdk/client-rds');
 
 const stsClient = new STSClient({
-    region: process.env.AWS_REGION,
-    credentials: {
-        accessKeyId: process.env.APP_AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.APP_AWS_SECRET_ACCESS_KEY
-    }
+    region: process.env.AWS_REGION || 'ap-south-1'
 });
 
 const getNameFromTags = (tags, fallbackId) => {
@@ -29,31 +19,11 @@ const getNameFromTags = (tags, fallbackId) => {
     return nameTag ? nameTag.Value : fallbackId;
 };
 
+// 1. SETUP ROUTE: Returns the Auth0 User ID
 exports.getAwsSetupInfo = async (req, res) => {
     try {
-        // req.userId now contains the string: "google-oauth2|..." or "auth0|..."
-        let result = await db.query('SELECT aws_external_id FROM users WHERE id = $1', [req.userId]);
-
-        // THE UPSERT LOGIC: If the user doesn't exist in our DB yet, create them!
-        if (result.rows.length === 0) {
-            console.log("New Auth0 user detected. Creating local DB record...");
-            
-            // Generate a brand new, secure External ID
-            const newExternalId = crypto.randomUUID(); 
-
-            // Insert the Auth0 ID and the new External ID into PostgreSQL
-            await db.query(
-                'INSERT INTO users (id, aws_external_id) VALUES ($1, $2)', 
-                [req.userId, newExternalId]
-            );
-
-            // Fetch the result again now that the user exists
-            result = await db.query('SELECT aws_external_id FROM users WHERE id = $1', [req.userId]);
-        }
-
         res.status(200).json({
-            appAccountId: process.env.APP_AWS_ACCOUNT_ID, 
-            externalId: result.rows[0].aws_external_id    
+            auth0UserId: req.userId 
         });
     } catch (error) {
         console.error("AWS Setup Info Error:", error);
@@ -61,40 +31,50 @@ exports.getAwsSetupInfo = async (req, res) => {
     }
 };
 
+// 2. SAVE ROLE ROUTE: Upserts the user and their Role ARN
 exports.saveRoleArn = async (req, res) => {
     try {
         const { roleArn } = req.body;
         if (!roleArn) return res.status(400).json({ error: "Role ARN is required." });
 
-        await db.query('UPDATE users SET aws_role_arn = $1 WHERE id = $2', [roleArn, req.userId]);
+        // PostgreSQL UPSERT (Insert if not exists, Update if exists)
+        // Cleaned up: No more aws_external_id!
+        await db.query(`
+            INSERT INTO users (id, aws_role_arn) 
+            VALUES ($1, $2) 
+            ON CONFLICT (id) 
+            DO UPDATE SET aws_role_arn = EXCLUDED.aws_role_arn
+        `, [req.userId, roleArn]);
+
         res.status(200).json({ message: "AWS Role connected successfully!" });
     } catch (error) {
-        console.error(error);
+        console.error("Save Role ARN Error:", error);
         res.status(500).json({ error: "Failed to save Role ARN." });
     }
 };
 
+// 3. FETCH ROUTE: Fetches and maps ALL resources
 exports.fetchAwsInfrastructure = async (req, res) => {
     try {
         const userResult = await db.query('SELECT aws_role_arn FROM users WHERE id = $1', [req.userId]);
+        
+        if (userResult.rows.length === 0 || !userResult.rows[0].aws_role_arn) {
+            return res.status(400).json({ error: "AWS account not connected yet." });
+        }
+
         const user = userResult.rows[0];
 
-        if (!user.aws_role_arn) return res.status(400).json({ error: "AWS account not connected yet." });
-
-        // 1. Grab the ID Token we just sent from the frontend custom header
         const idToken = req.headers['x-amz-id-token'];
         if (!idToken) {
             return res.status(401).json({ error: "Missing AWS ID Token." });
         }
 
-        // 2. AWS forbids '|' in session names. Replace any special characters with a dash.
         const safeSessionName = req.userId.replace(/[^a-zA-Z0-9-]/g, '-');
 
-        // 3. Trade the proper OIDC ID Token for AWS Credentials
         const assumedRole = await stsClient.send(new AssumeRoleWithWebIdentityCommand({
             RoleArn: user.aws_role_arn,
             RoleSessionName: `OIDC-Session-${safeSessionName}`,
-            WebIdentityToken: idToken, // <-- Passing the raw ID token here
+            WebIdentityToken: idToken, 
             DurationSeconds: 900
         }));
         
@@ -104,7 +84,6 @@ exports.fetchAwsInfrastructure = async (req, res) => {
             sessionToken: assumedRole.Credentials.SessionToken
         };
 
-        // --- NEW: Dynamic Region Support ---
         const TARGET_REGION = req.query.region || 'ap-south-1'; 
         const targetClientConfig = { region: TARGET_REGION, credentials: tempCredentials };
         
@@ -126,6 +105,8 @@ exports.fetchAwsInfrastructure = async (req, res) => {
 
         const nodes = [];
         const edges = [];
+
+        // --- FULLY RESTORED MAPPING LOGIC ---
 
         if (vpcData.Vpcs) {
             vpcData.Vpcs.forEach(vpc => { nodes.push({ id: vpc.VpcId, label: getNameFromTags(vpc.Tags, vpc.VpcId), type: 'VPC', status: vpc.State, cidr: vpc.CidrBlock }); });
@@ -186,6 +167,6 @@ exports.fetchAwsInfrastructure = async (req, res) => {
 
     } catch (error) {
         console.error("STS / Resource Fetch Error:", error);
-        res.status(403).json({ error: "Failed to access target AWS account or fetch region data." });
+        res.status(403).json({ error: "Failed to assume AWS role or fetch region data. Ensure your Trust Policy is correct." });
     }
 };

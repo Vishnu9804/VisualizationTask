@@ -9,8 +9,7 @@ import { Router } from '@angular/router';
   standalone: false
 })
 export class AwsSetupComponent implements OnInit {
-  appAccountId: string = '';
-  externalId: string = '';
+  auth0UserId: string = '';
   roleArnInput: string = '';
   
   isLoading: boolean = true;
@@ -23,17 +22,13 @@ export class AwsSetupComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // FIXED: Method name changed to getAwsSetupInfo()
     this.awsService.getAwsSetupInfo().subscribe({
-      // FIXED: Added ': any' to res
       next: (res: any) => {
-        console.log("SUCCESS DATA FROM BACKEND:", res);
-        this.appAccountId = res.appAccountId;
-        this.externalId = res.externalId;
+        // We only care about the user ID now for the trust policy
+        this.auth0UserId = res.auth0UserId;
         this.isLoading = false;
         this.cdr.detectChanges(); 
       },
-      // FIXED: Added ': any' to err
       error: (err: any) => {
         console.error("ERROR FROM BACKEND:", err);
         this.errorMessage = 'Failed to load setup instructions. Are you logged in?';
@@ -47,12 +42,10 @@ export class AwsSetupComponent implements OnInit {
     if (!this.roleArnInput) return;
 
     this.awsService.saveRoleArn(this.roleArnInput).subscribe({
-      // FIXED: Added ': any' to res
       next: (res: any) => {
         alert('AWS Role Connected Successfully!');
         this.router.navigate(['/dashboard']); 
       },
-      // FIXED: Added ': any' to err
       error: (err: any) => {
         this.errorMessage = err.error.error || 'Failed to save Role ARN.';
         this.cdr.detectChanges(); 
